@@ -79,6 +79,15 @@ module Paperclip
     ensure
       validate
     end
+    
+    # Assigns attachment from a file path:
+    #   instance.attachment.path = "/tmp/my_file.jpg"
+    # This will set the attachment to that file, just as if it had been uploaded.
+    # The path reader will not necessarily return the same path as you assigned;
+    # the plugin configuration (:storage and :path) still decides where it goes.
+    def path= path
+      assign open(path, 'rb')
+    end
 
     # Returns the public URL of the attachment, with a given style. Note that this
     # does not necessarily need to point to a file that your web server can access
