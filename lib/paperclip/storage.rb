@@ -165,6 +165,8 @@ module Paperclip
             key.put(nil, @s3_permissions)
           rescue RightAws::AwsError => e
             raise
+          ensure
+            file.close
           end
         end
         @queued_for_write = {}
