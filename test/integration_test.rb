@@ -17,6 +17,20 @@ class IntegrationTest < Test::Unit::TestCase
        end
     end
   end
+  
+  context "Assigning an attachment by path" do
+    setup do
+      rebuild_model
+      @dummy = Dummy.new
+      @path = File.join(File.dirname(__FILE__), "fixtures", "5k.png")
+    end
+    
+    should "work" do
+      @dummy.avatar.path = @path
+      assert @dummy.save
+      assert_equal '434x66', `identify -format "%wx%h" #{@dummy.avatar.to_file(:original).path}`.chomp
+    end
+  end
 
   context "An attachment" do
     setup do

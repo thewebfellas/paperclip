@@ -76,7 +76,7 @@ module Paperclip
       logger.info("[paperclip] Writing attributes for #{name}")
       @queued_for_write[:original]        = uploaded_file.to_tempfile
       @instance[:"#{@name}_file_name"]    = uploaded_file.original_filename.strip.gsub /[^\w\d\.\-]+/, '_'
-      @instance[:"#{@name}_content_type"] = uploaded_file.content_type.strip
+      @instance[:"#{@name}_content_type"] = uploaded_file.content_type.to_s.strip
       @instance[:"#{@name}_file_size"]    = uploaded_file.size.to_i
       @instance[:"#{@name}_updated_at"]   = Time.now
 
@@ -88,6 +88,15 @@ module Paperclip
       @instance[:"#{@name}_file_size"]    = uploaded_file.size.to_i
     ensure
       validate
+    end
+    
+    # Assigns attachment from a file path:
+    #   instance.attachment.path = "/tmp/my_file.jpg"
+    # This will set the attachment to that file, just as if it had been uploaded.
+    # The path reader will not necessarily return the same path as you assigned;
+    # the plugin configuration (:storage and :path) still decides where it goes.
+    def path= path
+      assign open(path, 'rb')
     end
 
     # Returns the public URL of the attachment, with a given style. Note that this
@@ -105,7 +114,7 @@ module Paperclip
     # disk. If the file is stored in S3, the path is the "key" part of the URL,
     # and the :bucket option refers to the S3 bucket.
     def path style = nil #:nodoc:
-      interpolate(@path, style)
+      original_filename.nil? ? nil : interpolate(@path, style)
     end
 
     # Alias to +url+
