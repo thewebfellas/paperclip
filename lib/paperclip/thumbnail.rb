@@ -15,13 +15,15 @@ module Paperclip
       @crop             = target_geometry[-1,1] == '#'
       @target_geometry  = Geometry.parse target_geometry
       @current_geometry = Geometry.from_file file
+      
       @convert_options  = convert_options
       @whiny_thumbnails = whiny_thumbnails
 
       @current_format   = File.extname(@file.path)
       @basename         = File.basename(@file.path, @current_format)
       
-      @format = format
+      @format           = format
+      RAILS_DEFAULT_LOGGER.debug("[paperclip] format #{@format}")
     end
 
     # Creates a thumbnail, as specified in +initialize+, +make+s it, and returns the

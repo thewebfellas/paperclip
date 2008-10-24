@@ -20,6 +20,7 @@ module Paperclip
                  rescue PaperclipCommandLineError
                    ""
                  end
+                 
       parse(geometry) ||
         raise(NotIdentifiedByImageMagickError.new("#{file} is not recognized by the 'identify' command."))
     end

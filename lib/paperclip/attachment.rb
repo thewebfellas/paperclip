@@ -15,7 +15,59 @@ module Paperclip
       }
     end
 
-    attr_reader :name, :instance, :styles, :default_style, :convert_options, :thumbnail_class
+    def self.image_content_types
+      [
+        'image/jpeg',
+        'image/pjpeg',
+        'image/jpg',
+        'image/gif',
+        'image/png',
+        'image/x-png',
+        'image/jpg',
+        'image/x-ms-bmp',
+        'image/bmp',
+        'image/x-bmp',
+        'image/x-bitmap',
+        'image/x-xbitmap',
+        'image/x-win-bitmap',
+        'image/x-windows-bmp',
+        'image/ms-bmp',
+        'application/bmp',
+        'application/x-bmp',
+        'application/x-win-bitmap',
+        'application/preview',
+        'image/jp_',
+        'application/jpg',
+        'application/x-jpg',
+        'image/pipeg',
+        'image/vnd.swiftview-jpeg',
+        'image/x-xbitmap',
+        'application/png',
+        'application/x-png',
+        'image/gi_'
+      ]
+    end
+
+    def self.image?(content_type)
+      self.image_content_types.include?(content_type)
+    end
+
+    def self.video_content_types
+      [
+        'video/mpeg',
+        'video/quicktime',
+        'video/x-la-asf',
+        'video/x-ms-asf',
+        'video/x-msvideo',
+        'video/x-sgi-movie'
+      ]
+    end
+
+    def self.video?(content_type)
+      self.video_content_types.include?(content_type)
+    end
+    
+    attr_reader :name, :instance, :styles, :default_style, :convert_options
 
     # Creates an Attachment object. +name+ is the name of the attachment, +instance+ is the
     # ActiveRecord object instance it's attached to, and +options+ is the same as the hash
@@ -35,7 +87,6 @@ module Paperclip
       @storage           = options[:storage]
       @whiny_thumbnails  = options[:whiny_thumbnails]
       @convert_options   = options[:convert_options] || {}
-      @thumbnail_class   = options[:thumbnail_class] || Thumbnail
       
       @options           = options
       @queued_for_delete = []
@@ -162,6 +213,12 @@ module Paperclip
       instance[:"#{name}_file_name"]
     end
     
+    # Returns the content type as originally assigned, and as lives in the
+    # <attachment>_file_name attribute of the model.
+    def original_content_type
+      instance[:"#{name}_content_type"]
+    end
+    
     def updated_at
       time = instance[:"#{name}_updated_at"]
       time && time.to_i
@@ -183,8 +240,12 @@ module Paperclip
                            attachment.original_filename.gsub(File.extname(attachment.original_filename), "")
                          end,
         :extension    => lambda do |attachment,style| 
-                           ((style = attachment.styles[style]) && style.last) ||
-                           File.extname(attachment.original_filename).gsub(/^\.+/, "")
+                           if (attachment.class.video?(attachment.original_content_type) && style.to_s != "original")
+                             "jpg"
+                           else
+                             ((style = attachment.styles[style]) && style.last) ||
+                             File.extname(attachment.original_filename).gsub(/^\.+/, "")
+                           end
                          end,
         :id           => lambda{|attachment,style| attachment.instance.id },
         :id_partition => lambda do |attachment, style|
@@ -260,12 +321,22 @@ module Paperclip
     def post_process #:nodoc:
       return if @queued_for_write[:original].nil?
       logger.info("[paperclip] Post-processing #{name}")
+      
+      if self.class.video?(original_content_type)
+        logger.info("[paperclip] Video")
+        @source_file = VideoThumbnail.make(@queued_for_write[:original])
+        logger.info("[paperclip] Finished getting video thumbnail")
+      else
+        @source_file = @queued_for_write[:original]
+      end
+      
       @styles.each do |name, args|
         begin
           dimensions, format = args
           dimensions = dimensions.call(instance) if dimensions.respond_to? :call
-          thumbnail_class = @thumbnail_class.respond_to?(:call) ? @thumbnail_class.call(instance) : @thumbnail_class
-          @queued_for_write[name] = thumbnail_class.make(@queued_for_write[:original], 
+          
+          logger.info("[paperclip] Create thumbnail #{name}")
+          @queued_for_write[name] = Thumbnail.make(@source_file, 
                                                    dimensions,
                                                    format, 
                                                    extra_options_for(name),
