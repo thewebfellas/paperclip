@@ -23,7 +23,6 @@ module Paperclip
       @basename         = File.basename(@file.path, @current_format)
       
       @format           = format
-      RAILS_DEFAULT_LOGGER.debug("[paperclip] format #{@format}")
     end
 
     # Creates a thumbnail, as specified in +initialize+, +make+s it, and returns the
