@@ -105,6 +105,13 @@ class GeometryTest < Test::Unit::TestCase
       assert @geo.height > 0
       assert @geo.width > 0
     end
+    
+    should "be generated from a multipage pdf" do
+      file = File.join(File.dirname(__FILE__), "fixtures", "multi_page.pdf")
+      assert_nothing_raised{ @geo = Paperclip::Geometry.from_file(file) }
+      assert @geo.height > 0
+      assert @geo.width > 0
+    end
 
     should "not generate from a bad file" do
       file = "/home/This File Does Not Exist.omg"
