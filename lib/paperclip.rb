@@ -70,6 +70,18 @@ module Paperclip
       File.exists?("/dev/null") ? "/dev/null" : "NUL"
     end
 
+    def content_type_from_extension(extension)
+      type = extension.downcase
+      case type
+      when %r"jpe?g"                 then "image/jpeg"
+      when %r"tiff?"                 then "image/tiff"
+      when %r"png", "gif", "bmp"     then "image/#{type}"
+      when "txt"                     then "text/plain"
+      when %r"html?"                 then "text/html"
+      when "csv", "xml", "css", "js" then "text/#{type}"
+      else "application/x-#{type}"
+      end
+    end
     def included base #:nodoc:
       base.extend ClassMethods
     end

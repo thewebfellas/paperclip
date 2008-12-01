@@ -108,6 +108,14 @@ module Paperclip
     def path style = nil #:nodoc:
       interpolate(@path, style)
     end
+    
+    def content_type(style = default_style)
+      if style == default_style || styles[style][1].nil?
+        instance_read(:content_type)
+      else
+        Paperclip.content_type_from_extension(styles[style][1])
+      end
+    end
 
     # Alias to +url+
     def to_s style = nil
