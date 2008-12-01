@@ -156,6 +156,18 @@ module Paperclip
       time = instance_read(:updated_at)
       time && time.to_i
     end
+    
+    def geometry
+      @geometry = nil if dirty?
+      if @queued_for_write[:original]
+        @geometry ||= Geometry.from_file(@queued_for_write[:original])
+      else
+        unless has_column_for_field?(:width) && has_column_for_field?(:height)
+          raise PaperclipError.new("#{@instance.class} model does not have required columns '#{name}_width' and '#{name}_height to get the geometry'")
+        end
+        @geometry ||= Geometry.new(instance_read(:width), instance_read(:height))
+      end
+    end
 
     # A hash of procs that are run during the interpolation of a path or url.
     # A variable of the format :name will be replaced with the return value of
@@ -267,15 +279,8 @@ module Paperclip
       logger.info("[paperclip] Post-processing #{name}")
       
       begin
-        current_geometry = nil
-        if has_column_for_field?(:width)
-          current_geometry = Geometry.from_file(@queued_for_write[:original])
-          instance_write(:width, current_geometry.width)
-        end
-        if has_column_for_field?(:height)
-          current_geometry ||= Geometry.from_file(@queued_for_write[:original])
-          instance_write(:height, current_geometry.height)
-        end
+        instance_write(:width, geometry.width) if has_column_for_field?(:width)
+        instance_write(:height, geometry.height) if has_column_for_field?(:height)
       rescue NotIdentifiedByImageMagickError
       end
       
