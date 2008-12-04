@@ -1,4 +1,4 @@
-require 'test/helper.rb'
+require 'test/helper'
 
 class IntegrationTest < Test::Unit::TestCase
   context "Many models at once" do
@@ -229,7 +229,7 @@ class IntegrationTest < Test::Unit::TestCase
       Dummy.validates_attachment_presence :avatar
       @d2 = Dummy.find(@dummy.id)
       @d2.avatar = @file
-      assert   @d2.valid?
+      assert   @d2.valid?, @d2.errors.full_messages.inspect 
       @d2.avatar = @bad_file
       assert ! @d2.valid?
       @d2.avatar = nil
@@ -285,6 +285,14 @@ class IntegrationTest < Test::Unit::TestCase
         t.rewind
         files[style] = t
         files
+      end
+    end
+
+    def s3_headers_for attachment, style
+      `curl --head '#{attachment.url(style)}' 2>/dev/null`.split("\n").inject({}) do |h,head|
+        split_head = head.chomp.split(/\s*:\s*/, 2)
+        h[split_head.first.downcase] = split_head.last unless split_head.empty?
+        h
       end
     end
 
@@ -400,6 +408,12 @@ class IntegrationTest < Test::Unit::TestCase
         assert_nil @dummy.avatar_file_name
         @dummy.reload
         assert_equal "5k.png", @dummy.avatar_file_name
+      end
+
+      should "have the right content type" do
+        headers = s3_headers_for(@dummy.avatar, :original)
+        p headers
+        assert_equal 'image/png', headers['content-type']
       end
     end
   end

@@ -15,7 +15,7 @@ module Paperclip
     #   make a symlink to the capistrano-created system directory from inside your app's 
     #   public directory.
     #   See Paperclip::Attachment#interpolate for more information on variable interpolaton.
-    #     :path => "/var/app/attachments/:class/:id/:style/:filename"
+    #     :path => "/var/app/attachments/:class/:id/:style/:basename.:extension"
     module Filesystem
       def self.extended base
       end
@@ -40,9 +40,8 @@ module Paperclip
         @queued_for_write.each do |style, file|
           FileUtils.mkdir_p(File.dirname(path(style)))
           logger.info("[paperclip] -> #{path(style)}")
-          result = file.stream_to(path(style))
+          FileUtils.mv(file.path, path(style))
           file.close
-          result.close
         end
         @queued_for_write = {}
       end
@@ -165,7 +164,7 @@ module Paperclip
             logger.info("[paperclip] -> #{path(style)}")
             key = s3_bucket.key(path(style))
             key.data = file
-            key.put(nil, @s3_permissions)
+            key.put(nil, @s3_permissions, {'Content-type' => instance_read(:content_type)})
           rescue RightAws::AwsError => e
             raise
           ensure

@@ -1,9 +1,4 @@
-require 'rubygems'
-require 'test/unit'
-require 'shoulda'
-require 'right_aws'
-
-require File.join(File.dirname(__FILE__), '..', 'lib', 'paperclip', 'geometry.rb')
+require 'test/helper'
 
 class StorageTest < Test::Unit::TestCase
   context "Parsing S3 credentials" do
@@ -102,7 +97,7 @@ class StorageTest < Test::Unit::TestCase
           @key_mock = stub
           @bucket_mock.expects(:key).returns(@key_mock)
           @key_mock.expects(:data=)
-          @key_mock.expects(:put)
+          @key_mock.expects(:put).with(nil, 'public-read', 'Content-type' => 'image/png')
           @dummy.save
         end
 

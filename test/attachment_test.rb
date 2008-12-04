@@ -174,7 +174,6 @@ class AttachmentTest < Test::Unit::TestCase
     should "strip whitespace from content_type field" do
       assert_equal "image/png", @dummy.avatar.instance.avatar_content_type
     end
-    
   end
 
   context "Attachment with strange letters" do
@@ -238,12 +237,12 @@ class AttachmentTest < Test::Unit::TestCase
     
     context "with a file assigned in the database" do
       setup do
-        @instance.stubs(:[]).with(:avatar_file_name).returns("5k.png")
-        @instance.stubs(:[]).with(:avatar_content_type).returns("image/png")
-        @instance.stubs(:[]).with(:avatar_file_size).returns(12345)
+        @attachment.stubs(:instance_read).with(:file_name).returns("5k.png")
+        @attachment.stubs(:instance_read).with(:content_type).returns("image/png")
+        @attachment.stubs(:instance_read).with(:file_size).returns(12345)
         now = Time.now
         Time.stubs(:now).returns(now)
-        @instance.stubs(:[]).with(:avatar_updated_at).returns(Time.now)
+        @attachment.stubs(:instance_read).with(:updated_at).returns(Time.now)
       end
 
       should "return a correct url even if the file does not exist" do
@@ -257,7 +256,7 @@ class AttachmentTest < Test::Unit::TestCase
 
       context "with the updated_at field removed" do
         setup do
-          @instance.stubs(:[]).with(:avatar_updated_at).returns(nil)
+          @attachment.stubs(:instance_read).with(:updated_at).returns(nil)
         end
 
         should "only return the url without the updated_at when sent #url" do
@@ -270,7 +269,7 @@ class AttachmentTest < Test::Unit::TestCase
       end
 
       should "return the proper path when filename has multiple .'s" do
-        @instance.stubs(:[]).with(:avatar_file_name).returns("5k.old.png")      
+        @attachment.stubs(:instance_read).with(:file_name).returns("5k.old.png")      
         assert_equal "./test/../tmp/avatars/dummies/original/#{@instance.id}/5k.old.png", @attachment.path
       end
 
@@ -337,10 +336,10 @@ class AttachmentTest < Test::Unit::TestCase
                 @existing_names = @attachment.styles.keys.collect do |style|
                   @attachment.path(style)
                 end
-                @instance.expects(:[]=).with(:avatar_file_name, nil)
-                @instance.expects(:[]=).with(:avatar_content_type, nil)
-                @instance.expects(:[]=).with(:avatar_file_size, nil)
-                @instance.expects(:[]=).with(:avatar_updated_at, nil)
+                @attachment.expects(:instance_write).with(:file_name, nil)
+                @attachment.expects(:instance_write).with(:content_type, nil)
+                @attachment.expects(:instance_write).with(:file_size, nil)
+                @attachment.expects(:instance_write).with(:updated_at, nil)
                 @attachment.assign nil
                 @attachment.save
               end
