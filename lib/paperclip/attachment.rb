@@ -220,7 +220,7 @@ module Paperclip
 
     # Returns an array containing the errors on this attachment.
     def errors
-      @errors
+      @errors.select {|k, v| v != nil}.map {|e| e.last}
     end
 
     # Returns true if there are changes that need to be saved.
