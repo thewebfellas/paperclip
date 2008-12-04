@@ -135,8 +135,8 @@ module Paperclip
     # In addition to form uploads, you can also assign another Paperclip attachment:
     #   new_user.avatar = old_user.avatar
     def assign uploaded_file
-      %w(file_name).each do |field|
-        unless @instance.class.column_names.include?("#{name}_#{field}")
+      %w(file_name content_type file_size updated_at).each do |field|
+        unless has_column_for_field?(field)
           raise PaperclipError.new("#{@instance.class} model does not have required column '#{name}_#{field}'")
         end
       end
@@ -198,6 +198,14 @@ module Paperclip
     def path style = nil #:nodoc:
       original_filename.nil? ? nil : interpolate(@path, style)
     end
+    
+    def content_type(style = default_style)
+      if style == default_style || styles[style][1].nil?
+        instance_read(:content_type)
+      else
+        Paperclip.content_type_from_extension(styles[style][1])
+      end
+    end
 
     # Alias to +url+
     def to_s style = nil
@@ -251,6 +259,18 @@ module Paperclip
     def updated_at
       time = instance_read(:updated_at)
       time && time.to_i
+    end
+    
+    def geometry
+      @geometry = nil if dirty?
+      if @queued_for_write[:original]
+        @geometry ||= Geometry.from_file(@queued_for_write[:original])
+      else
+        unless has_column_for_field?(:width) && has_column_for_field?(:height)
+          raise PaperclipError.new("#{@instance.class} model does not have required columns '#{name}_width' and '#{name}_height to get the geometry'")
+        end
+        @geometry ||= Geometry.new(instance_read(:width), instance_read(:height))
+      end
     end
 
     # A hash of procs that are run during the interpolation of a path or url.
@@ -357,6 +377,10 @@ module Paperclip
     def extra_options_for(style) #:nodoc:
       [ convert_options[style], convert_options[:all] ].compact.join(" ")
     end
+    
+    def has_column_for_field?(field)
+      @instance.class.column_names.include?("#{name}_#{field}")
+    end
 
     def post_process #:nodoc:
       return if @queued_for_write[:original].nil?
@@ -368,6 +392,12 @@ module Paperclip
         logger.info("[paperclip] Finished getting video thumbnail")
       else
         @source_file = @queued_for_write[:original]
+      end
+      
+      begin
+        instance_write(:width, geometry.width) if has_column_for_field?(:width)
+        instance_write(:height, geometry.height) if has_column_for_field?(:height)
+      rescue NotIdentifiedByImageMagickError
       end
       
       @styles.each do |name, args|
